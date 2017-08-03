@@ -1,0 +1,29 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+        <!-- Customize your theme here. -->
+    </style>
+
+    <style name="DefaultMaterialSearchViewStyle">
+        <item name="searchBarBackground">@android:color/white</item>
+        <item name="searchBackground">@color/sv_color_fefefe</item>
+        <item name="searchVoiceIcon">@drawable/sv_ic_action_voice_search</item>
+        <item name="searchCloseIcon">@drawable/sv_ic_action_navigation_close</item>
+        <item name="searchBackIcon">@drawable/sv_ic_action_navigation_arrow_back</item>
+        <item name="searchSuggestionBackground">@color/sv_bg_search_layover</item>
+        <item name="searchBarHeight">?attr/actionBarSize</item>
+        <item name="voiceHintPrompt">@string/sv_str_voice_hint_prompt</item>
+        <item name="android:textColor">@color/sv_color_black_50</item>
+        <item name="android:textColorHint">@color/sv_color_gray_50</item>
+        <item name="android:hint">@string/sv_str_search_hint</item>
+        <item name="android:inputType">textCapWords</item>
+    </style>
+
+    <style name="SV.Divider.Vertical" parent="AppTheme">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">0.5dp</item>
+        <item name="android:background">@color/sv_color_divider</item>
+    </style>
+
+</resources>

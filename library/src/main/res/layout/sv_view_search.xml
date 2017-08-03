@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/search_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:orientation="vertical"
+    android:visibility="gone">
+
+    <View
+        android:id="@+id/transparent_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/sv_color_gray"
+        android:visibility="visible" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/search_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/white"
+            android:gravity="start"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/action_back"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:background="?android:attr/selectableItemBackground"
+                android:contentDescription="@string/sv_str_content_description"
+                android:paddingLeft="@dimen/search_icon_padding"
+                android:paddingRight="@dimen/search_icon_padding"
+                app:srcCompat="@drawable/sv_ic_action_navigation_arrow_back" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginBottom="8dp"
+                android:layout_marginRight="16dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/sv_shape_gray_border_corner"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:scaleType="center"
+                    app:srcCompat="@drawable/sv_ic_action_search_gray"
+                    tools:ignore="ContentDescription" />
+
+                <EditText
+                    android:id="@+id/et_search"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="start"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="@string/sv_str_search_hint"
+                    android:imeOptions="actionSearch|flagNoExtractUi"
+                    android:maxLines="1"
+                    android:paddingLeft="4dp"
+                    android:paddingRight="@dimen/search_view_text_padding"
+                    android:textAlignment="viewStart"
+                    android:textColor="@color/sv_color_black_50"
+                    android:textColorHint="@color/sv_color_gray_50"
+                    android:textCursorDrawable="@null"
+                    android:textSize="14sp" />
+
+                <ImageButton
+                    android:id="@+id/action_voice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="@string/sv_str_content_description"
+                    android:paddingLeft="@dimen/search_icon_padding"
+                    android:paddingRight="@dimen/search_icon_padding"
+                    app:srcCompat="@drawable/sv_ic_action_voice_search" />
+
+                <ImageButton
+                    android:id="@+id/action_clear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="@string/sv_str_content_description"
+                    android:paddingLeft="@dimen/search_icon_padding"
+                    android:paddingRight="@dimen/search_icon_padding"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/sv_ic_action_navigation_close" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <ScrollView
+            android:id="@+id/ll_search_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/historyLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/sv_shape_gray_border"
+                    android:padding="16dp"
+                    android:text="@string/sv_str_search_history"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+
+                <com.yyfly.android.search.ExpandListView
+                    android:id="@+id/suggestion_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@color/sv_color_divider"
+                    android:dividerHeight="0.5dp" />
+
+                <View style="@style/SV.Divider.Vertical" />
+
+                <TextView
+                    android:id="@+id/clearAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:layout_marginTop="32dp"
+                    android:background="@drawable/sv_shape_gray_border"
+                    android:drawableLeft="@drawable/sv_ic_action_delete"
+                    android:drawablePadding="4dp"
+                    android:gravity="center_vertical"
+                    android:minHeight="40dp"
+                    android:paddingLeft="32dp"
+                    android:paddingRight="32dp"
+                    android:text="@string/sv_str_clear_history"
+                    android:textColor="@color/sv_color_black_50"
+                    android:textSize="16sp"
+                    android:visibility="gone"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </LinearLayout>
+
+</FrameLayout>

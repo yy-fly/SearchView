@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name" translatable="false">Search Library</string>
+    <string name="sv_str_content_description">image</string>
+    <string name="sv_str_search_hint">请输入搜索内容&#8230;</string>
+    <string name="sv_str_voice_hint_prompt">Speak an item name or a number</string>
+
+    <string name="sv_str_search_history">历史记录</string>
+    <string name="sv_str_clear_history">清空历史搜索</string>
+</resources>
