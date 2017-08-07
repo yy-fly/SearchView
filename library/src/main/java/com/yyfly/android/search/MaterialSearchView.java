@@ -3,14 +3,12 @@ package com.yyfly.android.search;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
-import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
@@ -31,20 +29,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.CursorAdapter;
 import android.widget.EditText;
-import android.widget.FilterQueryProvider;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.yyfly.android.search.db.HistoryContract;
 import com.yyfly.android.search.utils.AnimationUtils;
-import com.yyfly.android.search.widget.CursorSearchAdapter;
+import com.yyfly.android.search.widget.SearchHistoryAdapter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -64,11 +60,6 @@ public class MaterialSearchView extends FrameLayout {
      * The identifier for the voice request intent. (Guess why it's 42).
      */
     public static final int REQUEST_VOICE = 42;
-
-    /**
-     * Number of suggestions to show.
-     */
-    private static int MAX_HISTORY = BuildConfig.MAX_HISTORY;
 
     /**
      * Whether or not the search view is open right now.
@@ -150,10 +141,15 @@ public class MaterialSearchView extends FrameLayout {
      */
     private ExpandListView mSuggestionsListView;
 
+    private static List<SearchEntity> mList = new ArrayList<>();
+
+    private static LinkedList<SearchEntity> mHistoryList = new LinkedList<>();
+
+    private static List<SearchEntity> mSuggestionList = new ArrayList<>();
     /**
      * Adapter for displaying suggestions.
      */
-    private CursorAdapter mAdapter;
+    private SearchHistoryAdapter mAdapter;
     //endregion
 
     //region Query Properties
@@ -278,31 +274,13 @@ public class MaterialSearchView extends FrameLayout {
         // Initialize the search view.
         initSearchView();
 
-        mAdapter = new CursorSearchAdapter(mContext, getHistoryCursor());
+        mAdapter = new SearchHistoryAdapter(mContext, mList);
         if (mAdapter.getCount() > 0) {
             displayClearAll(true);
         } else {
             displayClearAll(false);
         }
-        mAdapter.setFilterQueryProvider(new FilterQueryProvider() {
-            @Override
-            public Cursor runQuery(CharSequence constraint) {
-                String filter = constraint.toString();
 
-                if (filter.isEmpty()) {
-                    return getHistoryCursor();
-                } else {
-                    return mContext.getContentResolver().query(
-                            HistoryContract.HistoryEntry.CONTENT_URI,
-                            null,
-                            HistoryContract.HistoryEntry.COLUMN_QUERY + " LIKE ?",
-                            new String[]{"%" + filter + "%"},
-                            HistoryContract.HistoryEntry.COLUMN_IS_HISTORY + " DESC, " +
-                                    HistoryContract.HistoryEntry.COLUMN_QUERY
-                    );
-                }
-            }
-        });
         mSuggestionsListView.setAdapter(mAdapter);
         mSuggestionsListView.setTextFilterEnabled(true);
     }
@@ -419,8 +397,7 @@ public class MaterialSearchView extends FrameLayout {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 // When the text changes, filter
-                mAdapter.getFilter().filter(s.toString());
-                mAdapter.notifyDataSetChanged();
+                filter(s.toString());
                 MaterialSearchView.this.onTextChanged(s);
             }
 
@@ -556,27 +533,6 @@ public class MaterialSearchView extends FrameLayout {
     }
     //endregion
 
-    //region Hide Methods
-
-    /**
-     * Hides the suggestion list.
-     */
-    private void dismissSuggestions() {
-        mSuggestionsListView.setVisibility(View.GONE);
-    }
-
-    /**
-     * Hides the keyboard displayed for the SearchEditText.
-     *
-     * @param view The view to detach the keyboard from.
-     */
-    private void hideKeyboard(View view) {
-        InputMethodManager inputMethodManager =
-                (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-
-        inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
-    }
-
     /**
      * Closes the search view if necessary.
      */
@@ -623,6 +579,28 @@ public class MaterialSearchView extends FrameLayout {
         displayClearAll(false);
     }
     //endregion
+
+    //region Hide Methods
+
+    /**
+     * Hides the suggestion list.
+     */
+    private void dismissSuggestions() {
+        mSuggestionsListView.setVisibility(View.GONE);
+    }
+
+    /**
+     * Hides the keyboard displayed for the SearchEditText.
+     *
+     * @param view The view to detach the keyboard from.
+     */
+    private void hideKeyboard(View view) {
+        InputMethodManager inputMethodManager =
+                (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+
+        inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
+
 
     //region Interface Methods
 
@@ -671,12 +649,12 @@ public class MaterialSearchView extends FrameLayout {
             if (mOnQueryTextListener == null || !mOnQueryTextListener.onQueryTextSubmit(query.toString())) {
 
                 if (mShouldKeepHistory) {
-                    saveQueryToDb(query.toString(), System.currentTimeMillis());
+                    saveQuery(query.toString());
                 }
 
-                // Refresh the cursor on the adapter,
-                // so the new entry will be shown on the next time the user opens the search view.
-                refreshAdapterCursor();
+//                // Refresh the cursor on the adapter,
+//                // so the new entry will be shown on the next time the user opens the search view.
+//                refreshAdapterCursor();
 
                 closeSearch();
                 mSearchEditText.setText("");
@@ -756,15 +734,6 @@ public class MaterialSearchView extends FrameLayout {
      */
     public void setShouldKeepHistory(boolean keepHistory) {
         this.mShouldKeepHistory = keepHistory;
-    }
-
-    /**
-     * Sets how many items you want to show from the history database.
-     *
-     * @param maxHistory - The number of items you want to display.
-     */
-    public static void setMaxHistoryResults(int maxHistory) {
-        MAX_HISTORY = maxHistory;
     }
 
     /**
@@ -993,12 +962,6 @@ public class MaterialSearchView extends FrameLayout {
         return getResources().getDimensionPixelSize(tv.resourceId);
     }
 
-    /**
-     * Retrieves the adapter.
-     */
-    public CursorAdapter getAdapter() {
-        return mAdapter;
-    }
     //endregion
 
     //region Accessors
@@ -1050,11 +1013,9 @@ public class MaterialSearchView extends FrameLayout {
         if (position < 0 || position >= mAdapter.getCount()) {
             return "";
         } else {
-            return mAdapter.getItem(position).toString();
+            return mAdapter.getItem(position).getKeyWord();
         }
     }
-    //endregion
-
     //region View Methods
 
     /**
@@ -1077,55 +1038,48 @@ public class MaterialSearchView extends FrameLayout {
 
     //----- Lifecycle methods -----//
 
-//    public void activityPaused() {
-//        Cursor cursor = ((CursorAdapter)mAdapter).getCursor();
-//        if (cursor != null && !cursor.isClosed()) {
-//            cursor.close();
-//        }
-//    }
-
     public void activityResumed() {
-        refreshAdapterCursor();
+        refreshAdapter(true);
     }
     //endregion
 
     //region Database Methods
 
-    /**
-     * Save a query to the local database.
-     *
-     * @param query - The query to be saved. Can't be empty or null.
-     * @param ms    - The insert date, in millis. As a suggestion, use System.currentTimeMillis();
-     **/
-    public synchronized void saveQueryToDb(String query, long ms) {
-        if (!TextUtils.isEmpty(query) && ms > 0) {
-            ContentValues values = new ContentValues();
+    public void filter(String word) {
+        if (!TextUtils.isEmpty(word)) {
+            ArrayList<SearchEntity> temp = new ArrayList<>();
 
-            values.put(HistoryContract.HistoryEntry.COLUMN_QUERY, query);
-            values.put(HistoryContract.HistoryEntry.COLUMN_INSERT_DATE, ms);
-            values.put(HistoryContract.HistoryEntry.COLUMN_IS_HISTORY, 1); // Saving as history.
+            for (SearchEntity entity : mHistoryList) {
+                if (entity.getKeyWord().toLowerCase().contains(word.toLowerCase())) {
+                    temp.add(entity);
+                }
+            }
 
-            mContext.getContentResolver().insert(HistoryContract.HistoryEntry.CONTENT_URI, values);
+            for (SearchEntity entity : mSuggestionList) {
+                if (entity.getKeyWord().toLowerCase().contains(word.toLowerCase())) {
+                    temp.add(entity);
+                }
+            }
+
+            mList.clear();
+            mList.addAll(temp);
+            mAdapter.notifyDataSetChanged();
         }
     }
 
     /**
-     * Add a single suggestion item to the suggestion list.
+     * Save a query to the local database.
      *
-     * @param suggestion - The suggestion to be inserted on the database.
-     */
-    public synchronized void addSuggestion(String suggestion) {
-        if (!TextUtils.isEmpty(suggestion)) {
-            ContentValues value = new ContentValues();
-            value.put(HistoryContract.HistoryEntry.COLUMN_QUERY, suggestion);
-            value.put(HistoryContract.HistoryEntry.COLUMN_INSERT_DATE, System.currentTimeMillis());
-            value.put(HistoryContract.HistoryEntry.COLUMN_IS_HISTORY, 0); // Saving as suggestion.
-
-
-            mContext.getContentResolver().insert(
-                    HistoryContract.HistoryEntry.CONTENT_URI,
-                    value
-            );
+     * @param query - The query to be saved. Can't be empty or null.
+     **/
+    public synchronized void saveQuery(String query) {
+        if (!TextUtils.isEmpty(query)) {
+            SearchEntity searchEntity = new SearchEntity(query, true);
+            searchEntity.setKeyWord(query);
+            if (!mHistoryList.contains(searchEntity)) {
+                mHistoryList.add(searchEntity);
+            }
+            refreshAdapter(true);
         }
     }
 
@@ -1137,91 +1091,100 @@ public class MaterialSearchView extends FrameLayout {
      */
     public synchronized void removeSuggestion(String suggestion) {
         if (!TextUtils.isEmpty(suggestion)) {
-            mContext.getContentResolver().delete(
-                    HistoryContract.HistoryEntry.CONTENT_URI,
-                    HistoryContract.HistoryEntry.TABLE_NAME +
-                            "." +
-                            HistoryContract.HistoryEntry.COLUMN_QUERY +
-                            " = ? AND " +
-                            HistoryContract.HistoryEntry.TABLE_NAME +
-                            "." +
-                            HistoryContract.HistoryEntry.COLUMN_IS_HISTORY +
-                            " = ?"
-                    ,
-                    new String[]{suggestion, String.valueOf(0)}
-            );
+            for (SearchEntity entity : mSuggestionList) {
+                if (entity.equals(suggestion)) {
+                    mSuggestionList.remove(entity);
+                }
+            }
         }
+        refreshAdapter(false);
     }
 
+    /**
+     * Add suggestion item to the suggestion list.
+     *
+     * @param suggestions - The suggestion to be inserted
+     */
     public synchronized void addSuggestions(List<String> suggestions) {
-        ArrayList<ContentValues> toSave = new ArrayList<>();
         for (String str : suggestions) {
-            ContentValues value = new ContentValues();
-            value.put(HistoryContract.HistoryEntry.COLUMN_QUERY, str);
-            value.put(HistoryContract.HistoryEntry.COLUMN_INSERT_DATE, System.currentTimeMillis());
-            value.put(HistoryContract.HistoryEntry.COLUMN_IS_HISTORY, 0); // Saving as suggestion.
-
-            toSave.add(value);
+            SearchEntity searchEntity = new SearchEntity(str, false);
+            searchEntity.setKeyWord(str);
+            mSuggestionList.add(searchEntity);
         }
-
-        ContentValues[] values = toSave.toArray(new ContentValues[toSave.size()]);
-
-        mContext.getContentResolver().bulkInsert(
-                HistoryContract.HistoryEntry.CONTENT_URI,
-                values
-        );
     }
 
+    /**
+     * Add suggestion item to the suggestion list.
+     *
+     * @param suggestions - The suggestion to be inserted
+     */
     public void addSuggestions(String[] suggestions) {
         ArrayList<String> list = new ArrayList<>(Arrays.asList(suggestions));
         addSuggestions(list);
     }
 
-    private Cursor getHistoryCursor() {
-        return mContext.getContentResolver().query(
-                HistoryContract.HistoryEntry.CONTENT_URI,
-                null,
-                HistoryContract.HistoryEntry.COLUMN_IS_HISTORY + " = ?",
-                new String[]{"1"},
-                HistoryContract.HistoryEntry.COLUMN_INSERT_DATE + " DESC LIMIT " + MAX_HISTORY
-        );
+    /**
+     * Add histories item to the history list.
+     *
+     * @param histories - The histories to be inserted
+     */
+    public void addHistories(List<String> histories) {
+        for (String history : histories) {
+            SearchEntity searchEntity = new SearchEntity(history, true);
+            searchEntity.setKeyWord(history);
+            mHistoryList.add(searchEntity);
+        }
     }
 
-    private void refreshAdapterCursor() {
-        Cursor historyCursor = getHistoryCursor();
-        mAdapter.changeCursor(historyCursor);
+    /**
+     * Add histories item to the history list.
+     *
+     * @param histories - The histories to be inserted
+     */
+    public void addHistories(String[] histories) {
+        ArrayList<String> list = new ArrayList<>(Arrays.asList(histories));
+        addHistories(list);
     }
 
+    /**
+     * refreshAdapter
+     */
+    private void refreshAdapter(boolean isHistory) {
+        mList.clear();
+        if (isHistory) {
+            mList.addAll(mHistoryList);
+        } else {
+            mList.addAll(mSuggestionList);
+        }
+        mAdapter.notifyDataSetChanged();
+    }
+
+    /**
+     * Clear Suggestions.
+     */
     public synchronized void clearSuggestions() {
-        mContext.getContentResolver().delete(
-                HistoryContract.HistoryEntry.CONTENT_URI,
-                HistoryContract.HistoryEntry.COLUMN_IS_HISTORY + " = ?",
-                new String[]{"0"}
-        );
+        mSuggestionList.clear();
+        refreshAdapter(false);
     }
 
+    /**
+     * Clear History.
+     */
     public synchronized void clearHistory() {
-        mContext.getContentResolver().delete(
-                HistoryContract.HistoryEntry.CONTENT_URI,
-                HistoryContract.HistoryEntry.COLUMN_IS_HISTORY + " = ?",
-                new String[]{"1"}
-        );
+        mHistoryList.clear();
+        refreshAdapter(true);
         displayClearAll(false);
     }
 
+    /**
+     * Clear all.
+     */
     public synchronized void clearAll() {
-        mContext.getContentResolver().delete(
-                HistoryContract.HistoryEntry.CONTENT_URI,
-                null,
-                null
-        );
-        refreshAdapterCursor();
+        mSuggestionList.clear();
+        mHistoryList.clear();
+        refreshAdapter(true);
         displayClearAll(false);
     }
-
-    //endregion
-
-    //region Interfaces
 
     /**
      * Interface that handles the submission and change of search queries.
