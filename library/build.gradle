@@ -10,8 +10,8 @@ android {
     defaultConfig {
         minSdkVersion 17
         targetSdkVersion 25
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.0.1"
         vectorDrawables.useSupportLibrary = true
         buildConfigField INT, "MAX_HISTORY", "10"
     }
@@ -26,17 +26,27 @@ android {
     }
 
 }
-
-dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:25.4.0'
+allprojects {
+    tasks.withType(Javadoc) {//兼容中文字符
+        options{
+            encoding "UTF-8"
+            charSet 'UTF-8'
+            links "http://docs.oracle.com/javase/7/docs/api"
+        }
+    }
 }
 //JCenter
 publish {
     userOrg = 'yyfly'
     groupId = 'com.yyfly.android'
     artifactId = 'search-view'
-    publishVersion = '1.0.0'
+    publishVersion = '1.0.1'
     desc = 'search view library'
     website = 'https://github.com/yy-fly/SearchView'
 }
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:25.4.0'
+}
+
